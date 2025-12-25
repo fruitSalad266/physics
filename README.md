@@ -10,5 +10,5 @@ TODO:
 
 Using Vertlet integration for smooth support
 
-#### Copyright
+## Copyright
 Don't reuse my code.

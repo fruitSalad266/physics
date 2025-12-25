@@ -17,7 +17,7 @@ void PhysicsWorld::RemoveObject(Object *object) {
 // ============ CONSTRAINT MANAGEMENT ============
 
 Constraint* PhysicsWorld::AddConstraint(std::unique_ptr<Constraint> constraint) {
-    m_constraints.push_back(std::move(constraint));
+    m_constraints.push_back(std::move(constraint)); //cast so that we can move the constraint
     return m_constraints.back().get();
 }
 
@@ -59,17 +59,7 @@ PinConstraint* PhysicsWorld::AddPinConstraint(Object* obj, sf::Vector2f anchor) 
     return ptr;
 }
 
-/**
- * CONSTRAINT SOLVING - The Key Algorithm
- * 
- * Constraints are solved iteratively because:
- * 1. Solving one constraint may violate another
- * 2. Multiple iterations allow the system to "relax" to a valid state
- * 3. More iterations = more accurate but slower
- * 
- * This is called "Gauss-Seidel relaxation" - each constraint
- * immediately sees changes from previous constraints in the same iteration.
- */
+//Uses Gauss-seidel relaxation (i.e. solve each constraint in each iteration)
 void PhysicsWorld::SolveConstraints() {
     for (int i = 0; i < m_constraintIterations; ++i) {
         for (auto& constraint : m_constraints) {
@@ -78,18 +68,7 @@ void PhysicsWorld::SolveConstraints() {
     }
 }
 
-/**
- * PHYSICS STEP - The Main Simulation Loop
- * 
- * Order of operations matters:
- * 1. Apply forces (gravity) → sets acceleration
- * 2. Verlet integration → updates positions based on velocity + acceleration
- * 3. Solve constraints → corrects positions to satisfy relationships
- * 4. Collision detection → prevents objects from overlapping
- * 
- * Constraints are solved AFTER integration so they can correct
- * any violations caused by movement.
- */
+//forces -> integration -> constraints -> collisions
 void PhysicsWorld::Step(float dt) {
     // 1. Apply gravity as acceleration
     for (Object* obj : m_objects) {
