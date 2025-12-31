@@ -24,7 +24,6 @@ add_executable(PhysicsEngine main.cpp
 
 target_link_libraries(PhysicsEngine PRIVATE SFML::Graphics SFML::Window SFML::System)
 
-# ============ TESTING ============
 option(BUILD_TESTS "Build the test suite" ON)
 
 if(BUILD_TESTS)

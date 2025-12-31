@@ -6,14 +6,11 @@
 #include <cmath>
 
 /**
- * CONSTRAINT PHYSICS CONCEPTS:
  * 
- * Constraints are rules that objects must obey. Instead of applying forces,
- * we directly adjust positions to satisfy the constraint. This is called
- * "Position-Based Dynamics" and works perfectly with Verlet integration.
+ * Adj positions instead of applying forces
+ * aka "Position-Based Dynamics" 
  * 
- * The key idea: after physics moves objects, constraints "correct" positions
- * to maintain relationships (like fixed distances between points).
+ * Correct positions after physics to maintain relationships
  */
 
 enum class ConstraintType {
@@ -29,15 +26,12 @@ struct Constraint {
     explicit Constraint(ConstraintType t) : type(t) {}
     virtual ~Constraint() = default;
     
-    // Solve the constraint by adjusting positions
+    // Position adjuster
     virtual void Solve() = 0;
 };
 
 /**
- * DISTANCE CONSTRAINT (Rigid Link)
- * 
- * Maintains a fixed distance between two objects - like a rigid rod.
- * Used for: pendulum arms, rigid body connections, chains
+ * Rigid link
  * 
  * Algorithm:
  * 1. Calculate current distance between objects
@@ -48,7 +42,7 @@ struct Constraint {
 struct DistanceConstraint : Constraint {
     Object* objA;
     Object* objB;
-    float restLength;      // The distance we want to maintain
+    float restLength;      //dist to maintain
     float stiffness;       // 1.0 = fully rigid, <1.0 = slightly elastic
     
     // Explicit length constructor
@@ -56,7 +50,7 @@ struct DistanceConstraint : Constraint {
         : Constraint(ConstraintType::Distance), 
           objA(a), objB(b), restLength(length), stiffness(stiff) {}
     
-    // Auto-calculate rest length from current positions
+    //Calc rest length from current positions
     DistanceConstraint(Object* a, Object* b)
         : Constraint(ConstraintType::Distance), objA(a), objB(b), stiffness(1.0f) {
         sf::Vector2f diff = objB->position - objA->position;
@@ -67,15 +61,11 @@ struct DistanceConstraint : Constraint {
         sf::Vector2f diff = objB->position - objA->position;
         float currentLength = std::sqrt(diff.x * diff.x + diff.y * diff.y);
         
-        if (currentLength < 0.0001f) return;  // Avoid division by zero
+        if (currentLength < 0.0001f) return;  //No div by zero
         
-        // How much we need to correct
+        //Correct by this
         float error = currentLength - restLength;
-        
-        // Direction to push/pull (normalized)
         sf::Vector2f direction = diff / currentLength;
-        
-        // Correction amount (scaled by stiffness)
         sf::Vector2f correction = direction * (error * stiffness);
         
         // Distribute correction based on which objects can move
@@ -85,7 +75,6 @@ struct DistanceConstraint : Constraint {
         } else if (objB->isStatic) {
             objA->position += correction;
         } else {
-            // Both dynamic: split 50/50
             objA->position += correction * 0.5f;
             objB->position -= correction * 0.5f;
         }
@@ -95,26 +84,20 @@ struct DistanceConstraint : Constraint {
 /**
  * SPRING CONSTRAINT (Soft Link)
  * 
- * Like distance constraint but with elasticity and damping.
- * Uses Hooke's Law: F = -k * x (force proportional to displacement)
- * 
- * Unlike rigid distance constraint, springs allow oscillation.
- * Damping reduces oscillation over time (prevents infinite bouncing).
- * 
- * Used for: soft bodies, cloth simulation, bouncy connections
+ * hooke's Law: F = -k * x (force proportional to displacement)
+ * Oscillation allowed
  */
 struct SpringConstraint : Constraint {
     Object* objA;
     Object* objB;
     float restLength;      // Natural length of spring
-    float stiffness;       // Spring constant (higher = stiffer)
-    float damping;         // Energy loss (higher = less bouncy)
+    float stiffness;       // Spring constant 
+    float damping;         // Energy loss 
     
     SpringConstraint(Object* a, Object* b, float length, float stiff = 0.5f, float damp = 0.1f)
         : Constraint(ConstraintType::Spring),
           objA(a), objB(b), restLength(length), stiffness(stiff), damping(damp) {}
     
-    // Auto-calculate rest length
     SpringConstraint(Object* a, Object* b, float stiff, float damp)
         : Constraint(ConstraintType::Spring), objA(a), objB(b), stiffness(stiff), damping(damp) {
         sf::Vector2f diff = objB->position - objA->position;
@@ -127,16 +110,16 @@ struct SpringConstraint : Constraint {
         
         if (currentLength < 0.0001f) return;
         
-        // Spring force (Hooke's Law)
+        //(Hooke's Law)
         float displacement = currentLength - restLength;
         sf::Vector2f direction = diff / currentLength;
         
-        // Get velocities (for damping)
+        // velocities 
         sf::Vector2f velA = objA->position - objA->oldPosition;
         sf::Vector2f velB = objB->position - objB->oldPosition;
         sf::Vector2f relativeVel = velB - velA;
         
-        // Damping force (opposes relative motion along spring)
+        // Damping force 
         float dampingForce = (relativeVel.x * direction.x + relativeVel.y * direction.y) * damping;
         
         // Total correction = spring + damping
@@ -156,12 +139,8 @@ struct SpringConstraint : Constraint {
 /**
  * PIN CONSTRAINT (Anchor)
  * 
- * Locks an object to a fixed point in space.
- * The object can still rotate around this point (if connected to others).
- * 
- * Used for: pendulum pivot points, fixed attachment points
- * 
- * This is the simplest constraint: just set position = anchor each solve.
+ * Rotation allowed - pivot points.
+ * Position is equal to anchor for each solve.
  */
 struct PinConstraint : Constraint {
     Object* obj;
@@ -175,11 +154,11 @@ struct PinConstraint : Constraint {
         : Constraint(ConstraintType::Pin), obj(o), anchor(o->position) {}
     
     void Solve() override {
-        // Simply force the object to the anchor point
+        //Force pos to error
         obj->position = anchor;
     }
     
-    // Allow moving the anchor (for interactive dragging)
+    //Move anchor if dragging/other
     void SetAnchor(sf::Vector2f newPos) {
         anchor = newPos;
     }

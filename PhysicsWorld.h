@@ -29,11 +29,11 @@ public:
     void AddObject(Object* object);
     void RemoveObject(Object* object);
     
-    // Constraint management - returns raw pointer for reference, world owns the constraint
+    //  World owns the constraint
     Constraint* AddConstraint(std::unique_ptr<Constraint> constraint);
     void RemoveConstraint(Constraint* constraint);
     
-    // Convenience methods to create common constraints
+    // Create 3 types of constraints
     DistanceConstraint* AddDistanceConstraint(Object* a, Object* b, float length = -1.f);
     SpringConstraint* AddSpringConstraint(Object* a, Object* b, float stiffness = 0.5f, float damping = 0.1f);
     PinConstraint* AddPinConstraint(Object* obj, sf::Vector2f anchor);

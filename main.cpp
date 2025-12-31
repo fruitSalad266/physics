@@ -16,8 +16,10 @@ int main() {
     window.setFramerateLimit(60);
 
     PhysicsWorld world;
-    std::vector<Ball> myBalls;
-    myBalls.reserve(100);
+    std::vector<std::unique_ptr<Ball>> myBalls; //only pointers get moved
+    //so that we can allocate each Ball at a stable address
+    //Only unique_ptr are moved, but the Balls aren't moved
+    //i.e., don't read from garbage memory
 
     Object floorP;
     floorP.position = {400.f, 600.f};
@@ -50,10 +52,10 @@ int main() {
     for (int i = 0; i < 4; ++i) {
         float x = 400.f + (i * 5);
         float y = 100.f + (i * -60);
-        //emplace because construct directly inside vector memory
-        myBalls.emplace_back(x, y, 20.f, sf::Color(100, 180, 220));
+        auto ball = std::make_unique<Ball>(x, y, 20.f, sf::Color(100, 180, 220));
         std::cout << "placing ball " << i << " at " << x << ", " << y << std::endl;
-        world.AddObject(&myBalls.back().physics);
+        world.AddObject(&ball->physics);
+        myBalls.push_back(std::move(ball));
     }
 
     sf::Clock clock;
@@ -65,8 +67,9 @@ int main() {
             if (event->is<sf::Event::MouseButtonPressed>()) {
                 const auto* mouse = event->getIf<sf::Event::MouseButtonPressed>();
                 if (mouse->button == sf::Mouse::Button::Left) {
-                    myBalls.emplace_back(static_cast<float>(mouse->position.x), static_cast<float>(mouse->position.y), 25.f, sf::Color(220, 120, 100));
-                    world.AddObject(&myBalls.back().physics);
+                    auto ball = std::make_unique<Ball>(static_cast<float>(mouse->position.x), static_cast<float>(mouse->position.y), 25.f, sf::Color(220, 120, 100));
+                    world.AddObject(&ball->physics);
+                    myBalls.push_back(std::move(ball));
                 }
             }
         }
@@ -79,14 +82,14 @@ int main() {
         
         // Remove balls that are off-screen
         for (auto it = myBalls.begin(); it != myBalls.end(); ) {
-            float r = it->GetRadius();
-            sf::Vector2f pos = it->physics.position;
+            float r = (*it)->GetRadius();
+            sf::Vector2f pos = (*it)->physics.position;
             
             bool offScreen = (pos.x + r < 0) || (pos.x - r > width) ||
                              (pos.y + r < 0) || (pos.y - r > height + 200);  // Extra margin below
             
             if (offScreen) {
-                world.RemoveObject(&it->physics);
+                world.RemoveObject(&(*it)->physics);
                 it = myBalls.erase(it);
             } else {
                 ++it;
@@ -99,11 +102,11 @@ int main() {
         hoveredBall = nullptr;
         
         for (auto& ball : myBalls) {
-            sf::Vector2f diff = ball.physics.position - mousePosF;
+            sf::Vector2f diff = ball->physics.position - mousePosF;
             float distSq = diff.x * diff.x + diff.y * diff.y;
-            float radius = ball.GetRadius();
+            float radius = ball->GetRadius();
             if (distSq < radius * radius) {
-                hoveredBall = &ball;
+                hoveredBall = ball.get();
                 break;
             }
         }
@@ -122,7 +125,7 @@ int main() {
         window.draw(floor);
 
         for (auto& ball : myBalls) {
-            ball.render(window);
+            ball->render(window);
         }
         
         if (fontLoaded) {

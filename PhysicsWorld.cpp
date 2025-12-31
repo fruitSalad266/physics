@@ -70,7 +70,7 @@ void PhysicsWorld::SolveConstraints() {
 
 //forces -> integration -> constraints -> collisions
 void PhysicsWorld::Step(float dt) {
-    // 1. Apply gravity as acceleration
+    //1. Gravity
     for (Object* obj : m_objects) {
         if (obj->isStatic) continue;
         obj->acceleration = m_gravity;
