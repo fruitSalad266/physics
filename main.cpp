@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include "PhysicsWorld.h"
 #include "Ball.h"
+#include "Spring.h"
 #include "Grid.h"
 #include "UI/InfoPanel.h"
 #include "UI/CounterPanel.h"
@@ -48,15 +49,24 @@ int main() {
     
     int floorCount = 1;
     Ball* hoveredBall = nullptr;
-
-    for (int i = 0; i < 4; ++i) {
-        float x = 400.f + (i * 5);
-        float y = 100.f + (i * -60);
-        auto ball = std::make_unique<Ball>(x, y, 20.f, sf::Color(100, 180, 220));
-        std::cout << "placing ball " << i << " at " << x << ", " << y << std::endl;
-        world.AddObject(&ball->physics);
-        myBalls.push_back(std::move(ball));
-    }
+    
+    auto anchorBall = std::make_unique<Ball>(600.f, 50.f, 10.f, sf::Color(100, 200, 100));
+    auto swingBall = std::make_unique<Ball>(650.f, 150.f, 18.f, sf::Color(220, 180, 80));
+    
+    world.AddObject(&anchorBall->physics);
+    world.AddObject(&swingBall->physics);
+    
+    world.AddPinConstraint(&anchorBall->physics, anchorBall->physics.position);
+    
+    // Connect with spring
+    auto* springConstraint = world.AddSpringConstraint(
+        &anchorBall->physics, &swingBall->physics, 0.3f, 0.05f);
+    
+    Spring spring(&anchorBall->physics, &swingBall->physics, springConstraint,
+                  sf::Color(255, 200, 100), 2.f, 12);
+    
+    myBalls.push_back(std::move(anchorBall));
+    myBalls.push_back(std::move(swingBall));
 
     sf::Clock clock;
 
@@ -127,6 +137,8 @@ int main() {
         for (auto& ball : myBalls) {
             ball->render(window);
         }
+        
+        spring.render(window);
         
         if (fontLoaded) {
             window.draw(counterPanel);
